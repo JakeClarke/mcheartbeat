@@ -81,11 +81,9 @@ public class Testers extends Plugin  {
 		}
 		*/
 
-		/*
 		public boolean onCommand(Player player, String[] split) {
 			return false;
 		}
-		*/
 
 		/*
 		public boolean onConsoleCommand(String[] split) {
