@@ -37,6 +37,13 @@ public class Testers extends Plugin  {
 		//etc.getLoader().addListener( PluginLoader.Hook.SERVERCOMMAND, l, this, PluginListener.Priority.MEDIUM);
 		//etc.getLoader().addListener( PluginLoader.Hook.TELEPORT, l, this, PluginListener.Priority.MEDIUM);
 	}
+
+	// Sends a message to all players!
+	public void broadcast(String message) {
+		for (Player p : etc.getServer().getPlayerList()) {
+			p.sendMessage(message);
+		}
+	}
 	
 	public class Listener extends PluginListener {
 		Testers p;
@@ -67,7 +74,11 @@ public class Testers extends Plugin  {
 		*/
 
 		public void onLogin(Player player) {
+			// Player Message
 			player.sendMessage(Colors.Yellow + "Currently running plugin: " + p.name + " v" + p.version + "!");
+			
+			// Global Message
+			p.broadcast(Colors.Green + player.getName() + " has joined the server! Wooo~");
 		}
 
 		/*
