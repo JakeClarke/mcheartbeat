@@ -2,14 +2,14 @@ import java.util.logging.Logger;
 
 /**
 *
-* @author Nijiko
+* @author Clinton Alexander
 */
-public class Testers extends Plugin  {
+public class DeadMansSwitchServer extends Plugin  {
 	private Listener l = new Listener(this);
 	protected static final Logger log = Logger.getLogger("Minecraft");
-	private String name = "MyPlugin";
-	private String version = "1.0";
-
+	private String name = "DeadMansSwitchServer";
+	private String version = "0.1";
+		
 	public void enable() {
 	}
 	
