@@ -2,6 +2,10 @@ package com.digitaluppercut.dmssplugin;
 
 import java.util.logging.Logger;
 import java.lang.Thread;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 
 /**
 *
@@ -41,12 +45,26 @@ public class DeadMansSwitchServer extends Plugin  {
 	
 	private class DMSControlThread extends Thread {
 		
-		boolean threadEnabled;
-		int waited = 0, waitMax = 6000;
-		final int waitMS = 1000;
+		private boolean threadEnabled;
+		private int 	waited 			= 0, 
+		private long 	waitMax;
+		private long 	waitMS			= 100;
+		private String 	domain;
+		private int 	port;
+		private String	file;
 		
 		public void run()
 		{
+			// Load properties
+			PropertiesFile props = new PropertiesFile("DeadMansSwitchServer.properties");
+			waitMax = (long) props.getInt("message-freq");
+			domain = props.getString("message-domain");
+			port   = props.getInt("message-port");
+			file   = props.getString("message-file");
+			key    = props.getString("message-key");
+			server = props.getString("message-serverid");
+			
+			this.notifyServer("alive", waitMax);
 			
 			threadEnabled = true;
 			while(threadEnabled)
@@ -54,6 +72,11 @@ public class DeadMansSwitchServer extends Plugin  {
 				if(waitMax <= waited)
 				{
 					// run the check in code.
+					try {
+						this.checkIn();
+					} catch (DeadManNotifyException e) {
+						log.error("[DeadMansSwitch] Host Unknown! Cannot tell server");
+					}
 					
 					waited = 0;
 				}
@@ -66,12 +89,75 @@ public class DeadMansSwitchServer extends Plugin  {
 			
 		}
 		
+		/**
+		* Check in with the server
+		*
+		* @return	void
+		*/
+		private void checkIn() {
+			long time = System.currentTimeMillis / 1000;
+			// Create url with all parameters
+			String params = "status=alive&time=" + time + "&server=" + server
+							+ "&key=" + key;
+			this.sendRequest(params);
+		}
+		
+		/**
+		* Notify the server that we are starting the plugin
+		*
+		* @param	String		Status
+		* @param	long		Time between requests
+		* @return	void
+		*/
+		private void notifyServer(String status, long time) {
+			String params = "status=" + status + "&wait=" + time;
+			this.sendRequest(params);
+		}
+		
+		/**
+		* Notify the server that we're shutting the plugin
+		*
+		* @param	String		Status
+		* @return	void
+		*/
+		private void notifyServer(String status) {
+			String params = "status=" + status;
+		}
+		
+		/**
+		* A simple request sender for our server URL
+		*
+		* @param	String		URL query string.
+		* @return	void
+		*/
+		private void sendRequest(String params) {
+			if(params.length > 0) {
+				params = "&" + params;
+			}
+			params = "?serverid=" + server + "&key=" + key + params
+			
+			Url url = new Url(host + ":" + port + file + params);
+			HttpURLConnection con = new HttpURLConnection(url);
+			
+			con.setRequest("GET");
+			con.setInstanceFollowRedirects(true);
+			con.setDoOutput(false);
+			
+			con.connect();
+			con.disconnect();
+			
+			if(con.getResponseCode() != 200) {
+				throw new DeadManNotifyException("Could not notify server");
+			}
+			
+		}
 		
 		public void haltThread()
 		{
 			threadEnabled = false;
-		
+			this.notifyServer("halt");
 		}
 	}
 	
+	private class DeadManNotifyException extends Exception {}
 }
