@@ -11,21 +11,21 @@ public class DeadMansSwitchServer extends Plugin  {
 	protected static final Logger log = Logger.getLogger("Minecraft");
 	private String name = "DeadMansSwitchServer";
 	private String version = "0.1";
-	private DMSControlThread;
+	private DMSControlThread ct = null;
 		
 	public void enable() {
 		
-		if(DMSControlThread != null || !DMSControlThread.isAlive())
+		if(ct == null || !ct.isAlive())
 		{
-			DMSControlThread = new DMSControlThread();
-			DMSControlThread.start();
+			ct = new DMSControlThread();
+			ct.start();
 		}
 		
 	}
 	
 	public void disable() {
 		
-		DMSControlThread.haltThread();
+		ct.haltThread();
 	}
 
 	public void initialize() {
@@ -55,6 +55,7 @@ public class DeadMansSwitchServer extends Plugin  {
 				{
 					// run the check in code.
 					
+					waited = 0;
 				}
 				
 				// We have finished running we should wait for a while. 
