@@ -1,3 +1,5 @@
+package com.digitaluppercut.dmssplugin;
+
 import java.util.logging.Logger;
 import java.lang.Thread;
 
@@ -41,7 +43,7 @@ public class DeadMansSwitchServer extends Plugin  {
 		
 		boolean threadEnabled;
 		int waited = 0, waitMax = 6000;
-		final waitMS = 1000;
+		final int waitMS = 1000;
 		
 		public void run()
 		{
