@@ -5,6 +5,7 @@ import java.lang.Thread;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 /**
 *
@@ -47,6 +48,13 @@ public class DeadMansSwitchServer extends Plugin  {
 		}
 	}
 	
+	/**
+	 * The thread that keeps the DMS notices active
+	 * to prevent the death signal 
+	 * 
+	 * @author Clinton Alexander
+	 * @author Jake Clarke
+	 */
 	private class DMSControlThread extends Thread {
 		
 		private boolean threadEnabled;
@@ -54,8 +62,7 @@ public class DeadMansSwitchServer extends Plugin  {
 		private String 	domain;
 		private int 	port;
 		private String	file;
-		private String	key;
-		private String 	serverid;
+		private String 	key;
 		
 		public void run() {
 			// Load properties
@@ -64,8 +71,7 @@ public class DeadMansSwitchServer extends Plugin  {
 			domain = props.getString("message-domain");
 			port   = props.getInt("message-port");
 			file   = props.getString("message-file");
-			key    = props.getString("message-key");
-			serverid = props.getString("message-serverid");
+			key = props.getString("message-key");
 			
 			try {
 				this.notifyServer("start", waitMax);
@@ -101,7 +107,22 @@ public class DeadMansSwitchServer extends Plugin  {
 		private void checkIn() throws DeadManNotifyException {
 			// Create url with all parameters
 			String params = "status=alive";
-			this.sendRequest(params);
+			String response = this.sendRequest(params);
+			
+			if(response == "OKAY") { 
+				log.info("[DeadMansServer] Check-in OKAY.");
+			} else if(response == "RECONNECT") {
+				log.info("[DeadMansServer] Daemon has dropped this server. Reconnecting");
+				// Reconnection
+				try {
+					this.notifyServer("start", waitMax);
+				} catch (DeadManNotifyException e) {
+					threadEnabled = false;
+					log.info("[DeadManSwitch] " + e.getMessage());
+				}
+			} else {
+				log.info("[DeadMansServer] Query sent is malformed. Response: " + response);
+			}
 		}
 		
 		/**
@@ -134,33 +155,48 @@ public class DeadMansSwitchServer extends Plugin  {
 		* A simple request sender for our server URL
 		*
 		* @param	String		URL query string.
-		* @return	void
+		* @return	String		Response to query
+		* @throws 	DeadManNotifyException
 		*/
-		private void sendRequest(String params) throws DeadManNotifyException {
+		private String sendRequest(String params) throws DeadManNotifyException {
+			InputStreamReader in;
+			// Response of server
+			String response = "";
 			if(params.length() > 0) {
 				params = "&" + params;
 			}
-			params = "?serverid=" + serverid + "&key=" + key + params;
-			log.info("[DMSSDebug] Params: " + params);
+			params = "?key=" + key + params;
+			//log.info("[DMSSDebug] Params: " + params);
 			try {
 				URL url = new URL(domain + ":" + port + file + params);
 				HttpURLConnection con = (HttpURLConnection)url.openConnection();
 				
 				con.setRequestMethod("GET");
 				con.setInstanceFollowRedirects(true);
-				con.setDoOutput(false);
+				con.setDoOutput(true);
 				
 				con.connect();
 				con.disconnect();
 				
+				// Get the response and output from the call
 				int code = con.getResponseCode();
+				in = new InputStreamReader(
+                         con.getInputStream());
+				char tmp;
+				/*while((tmp = (char) in.read()) != -1) {
+					response = response + tmp;
+				}*/
+				// 200 is "OKAY". 
 				if(code != 200) {
-					throw new DeadManNotifyException("Could not notify server. Code: " + code);
+					throw new DeadManNotifyException("Could not notify server. Code: " 
+							+ code + ". Message: " + response);
 				}
 			// Convert to deadmannotify
 			} catch (IOException e) {
 				throw new DeadManNotifyException(e.getMessage());
 			}
+			
+			return response;
 		}
 		
 		public void haltThread()
